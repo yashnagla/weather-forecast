@@ -10,6 +10,7 @@ import { logEvent } from "firebase/analytics";
 type WeatherState = "idle" | "loading" | "found" | "not-found";
 type Unit = "C" | "F";
 type ActiveTab = "overview" | "aqi" | "hourly" | "daily" | "sun";
+type Theme = "light" | "dark";
 
 interface AirQualityData {
   aqi: number;
@@ -61,76 +62,155 @@ interface DailyItem {
 }
 
 /* ─────────────────────────────────────────
-   Per-condition config: image + bg gradient
+   Per-condition config: image + bg gradients (Light & Dark)
 ───────────────────────────────────────── */
-const conditionConfig: Record<
-  string,
-  { image: string; from: string; via: string; to: string }
-> = {
+interface GradientConfig {
+  from: string;
+  via: string;
+  to: string;
+}
+
+interface ConditionStyle {
+  image: string;
+  light: GradientConfig;
+  dark: GradientConfig;
+}
+
+const conditionConfig: Record<string, ConditionStyle> = {
   Clear: {
     image: "/images/clear.png",
-    from: "from-amber-400",
-    via: "via-orange-300",
-    to: "to-sky-500",
+    light: {
+      from: "from-amber-400",
+      via: "via-orange-300",
+      to: "to-sky-500",
+    },
+    dark: {
+      from: "from-slate-950",
+      via: "via-indigo-950",
+      to: "to-slate-900",
+    },
   },
   Rain: {
     image: "/images/rain.png",
-    from: "from-slate-700",
-    via: "via-blue-800",
-    to: "to-indigo-900",
+    light: {
+      from: "from-slate-700",
+      via: "via-blue-800",
+      to: "to-indigo-900",
+    },
+    dark: {
+      from: "from-slate-950",
+      via: "via-slate-900",
+      to: "to-blue-950",
+    },
   },
   Drizzle: {
     image: "/images/rain.png",
-    from: "from-slate-600",
-    via: "via-blue-700",
-    to: "to-indigo-900",
+    light: {
+      from: "from-slate-600",
+      via: "via-blue-700",
+      to: "to-indigo-900",
+    },
+    dark: {
+      from: "from-slate-950",
+      via: "via-gray-900",
+      to: "to-slate-900",
+    },
   },
   Thunderstorm: {
     image: "/images/rain.png",
-    from: "from-gray-900",
-    via: "via-indigo-950",
-    to: "to-purple-900",
+    light: {
+      from: "from-gray-900",
+      via: "via-indigo-950",
+      to: "to-purple-900",
+    },
+    dark: {
+      from: "from-black",
+      via: "via-purple-950",
+      to: "to-slate-950",
+    },
   },
   Snow: {
     image: "/images/snow.png",
-    from: "from-sky-200",
-    via: "via-blue-300",
-    to: "to-indigo-500",
+    light: {
+      from: "from-sky-200",
+      via: "via-blue-300",
+      to: "to-indigo-500",
+    },
+    dark: {
+      from: "from-slate-900",
+      via: "via-blue-950",
+      to: "to-slate-950",
+    },
   },
   Clouds: {
     image: "/images/cloud.png",
-    from: "from-slate-500",
-    via: "via-gray-600",
-    to: "to-slate-700",
+    light: {
+      from: "from-slate-500",
+      via: "via-gray-600",
+      to: "to-slate-700",
+    },
+    dark: {
+      from: "from-gray-950",
+      via: "via-slate-900",
+      to: "to-zinc-900",
+    },
   },
   Haze: {
     image: "/images/mist.png",
-    from: "from-gray-400",
-    via: "via-slate-500",
-    to: "to-gray-600",
+    light: {
+      from: "from-gray-400",
+      via: "via-slate-500",
+      to: "to-gray-600",
+    },
+    dark: {
+      from: "from-zinc-950",
+      via: "via-stone-900",
+      to: "to-slate-900",
+    },
   },
   Mist: {
     image: "/images/mist.png",
-    from: "from-gray-400",
-    via: "via-slate-500",
-    to: "to-gray-600",
+    light: {
+      from: "from-gray-400",
+      via: "via-slate-500",
+      to: "to-gray-600",
+    },
+    dark: {
+      from: "from-zinc-950",
+      via: "via-stone-900",
+      to: "to-slate-900",
+    },
   },
   Fog: {
     image: "/images/mist.png",
-    from: "from-gray-400",
-    via: "via-slate-500",
-    to: "to-gray-600",
+    light: {
+      from: "from-gray-400",
+      via: "via-slate-500",
+      to: "to-gray-600",
+    },
+    dark: {
+      from: "from-zinc-950",
+      via: "via-stone-900",
+      to: "to-slate-900",
+    },
   },
 };
 
-const defaultConfig = {
+const defaultConfig: ConditionStyle = {
   image: "/images/clear.png",
-  from: "from-sky-500",
-  via: "via-blue-600",
-  to: "to-indigo-700",
+  light: {
+    from: "from-sky-500",
+    via: "via-blue-600",
+    to: "to-indigo-700",
+  },
+  dark: {
+    from: "from-slate-950",
+    via: "via-indigo-950",
+    to: "to-slate-900",
+  },
 };
 
-function getCfg(condition: string) {
+function getCfg(condition: string): ConditionStyle {
   return conditionConfig[condition] ?? defaultConfig;
 }
 
@@ -288,9 +368,9 @@ function IconGauge() {
   );
 }
 
-function IconEye() {
+function IconEye({ className = "w-5 h-5 fill-none stroke-emerald-300 stroke-2" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className="w-5 h-5 fill-none stroke-emerald-300 stroke-2">
+    <svg viewBox="0 0 24 24" className={className}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
     </svg>
@@ -372,6 +452,30 @@ function IconShieldAlert() {
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
       <line x1="12" y1="8" x2="12" y2="12" strokeLinecap="round" strokeLinejoin="round" />
       <circle cx="12" cy="16" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+function IconSun() {
+  return (
+    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-none stroke-amber-300 stroke-2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2" />
+      <path d="M12 20v2" />
+      <path d="M4.93 4.93l1.41 1.41" />
+      <path d="M17.66 17.66l1.41 1.41" />
+      <path d="M2 12h2" />
+      <path d="M20 12h2" />
+      <path d="M6.34 17.66l-1.41 1.41" />
+      <path d="M19.07 4.93l-1.41 1.41" />
+    </svg>
+  );
+}
+
+function IconMoon() {
+  return (
+    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-indigo-200/20 stroke-indigo-200 stroke-2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
     </svg>
   );
 }
@@ -462,6 +566,7 @@ function StatCard({
   value,
   label,
   subtext,
+  isDark = false,
   className = "",
   style,
 }: {
@@ -469,22 +574,29 @@ function StatCard({
   value: React.ReactNode;
   label: string;
   subtext?: string;
+  isDark?: boolean;
   className?: string;
   style?: React.CSSProperties;
 }) {
   return (
     <div
-      className={`stat-card bg-white/10 border border-white/20 rounded-2xl p-3.5 flex items-center gap-3 backdrop-blur-sm cursor-default hover:bg-white/15 transition-all ${className}`}
+      className={`stat-card rounded-2xl p-3.5 flex items-center gap-3 backdrop-blur-sm cursor-default transition-all border ${
+        isDark
+          ? "bg-slate-900/40 border-white/10 hover:bg-slate-800/60 hover:border-white/20 shadow-sm"
+          : "bg-white/10 border-white/20 hover:bg-white/15"
+      } ${className}`}
       style={style}
     >
-      <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+        isDark ? "bg-white/5 border border-white/10" : "bg-white/15"
+      }`}>
         {icon}
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-white font-bold text-lg leading-tight truncate">{value}</p>
-        <p className="text-white/60 text-xs font-medium uppercase tracking-wider">{label}</p>
+        <p className={`${isDark ? "text-slate-400" : "text-white/60"} text-xs font-medium uppercase tracking-wider`}>{label}</p>
         {subtext && (
-          <p className="text-white/45 text-[11px] truncate mt-0.5">{subtext}</p>
+          <p className={`${isDark ? "text-slate-500" : "text-white/45"} text-[11px] truncate mt-0.5`}>{subtext}</p>
         )}
       </div>
     </div>
@@ -534,10 +646,36 @@ export default function WeatherPage() {
   const [dailyForecast, setDailyForecast] = useState<DailyItem[]>([]);
   const [airQuality, setAirQuality] = useState<AirQualityData | null>(null);
   const [unit, setUnit] = useState<Unit>("C");
+  const [theme, setTheme] = useState<Theme>("dark");
   const [activeTab, setActiveTab] = useState<ActiveTab>("overview");
   const [animKey, setAnimKey] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("weather_theme") as Theme | null;
+      if (saved === "light" || saved === "dark") {
+        setTheme(saved);
+        document.documentElement.classList.toggle("dark", saved === "dark");
+      } else {
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const initial: Theme = prefersDark ? "dark" : "light";
+        setTheme(initial);
+        document.documentElement.classList.toggle("dark", initial === "dark");
+      }
+    } catch {}
+  }, []);
+
+  function toggleTheme() {
+    const next: Theme = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    try {
+      localStorage.setItem("weather_theme", next);
+    } catch {}
+    document.documentElement.classList.toggle("dark", next === "dark");
+  }
+
+  const isDark = theme === "dark";
   const cfg = weather ? getCfg(weather.condition) : defaultConfig;
 
   async function handleSearch(cityNameToSearch?: string) {
@@ -682,41 +820,68 @@ export default function WeatherPage() {
     <div className="relative min-h-screen w-full flex items-center justify-center p-3 sm:p-5 overflow-hidden z-0">
       {/* ── Dynamic cross-fading background gradients ── */}
       <div
-        className={`absolute inset-0 -z-10 bg-gradient-to-br ${defaultConfig.from} ${defaultConfig.via} ${defaultConfig.to} transition-opacity duration-1000 ease-in-out ${
+        className={`absolute inset-0 -z-10 bg-gradient-to-br ${
+          isDark
+            ? `${defaultConfig.dark.from} ${defaultConfig.dark.via} ${defaultConfig.dark.to}`
+            : `${defaultConfig.light.from} ${defaultConfig.light.via} ${defaultConfig.light.to}`
+        } transition-all duration-1000 ease-in-out ${
           cfg === defaultConfig ? "opacity-100" : "opacity-0"
         }`}
       />
-      {Object.entries(conditionConfig).map(([key, config]) => (
-        <div
-          key={key}
-          className={`absolute inset-0 -z-10 bg-gradient-to-br ${config.from} ${config.via} ${config.to} transition-opacity duration-1000 ease-in-out ${
-            weather?.condition === key ? "opacity-100" : "opacity-0"
-          }`}
-        />
-      ))}
+      {Object.entries(conditionConfig).map(([key, config]) => {
+        const grad = isDark ? config.dark : config.light;
+        return (
+          <div
+            key={key}
+            className={`absolute inset-0 -z-10 bg-gradient-to-br ${grad.from} ${grad.via} ${grad.to} transition-all duration-1000 ease-in-out ${
+              weather?.condition === key ? "opacity-100" : "opacity-0"
+            }`}
+          />
+        );
+      })}
 
       {/* ── Bokeh floating atmosphere ── */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden -z-10">
-        <div className="animate-drift-1 absolute -top-24 -left-24 w-96 h-96 rounded-full bg-white/10 blur-3xl" />
-        <div className="animate-drift-2 absolute -bottom-24 -right-24 w-80 h-80 rounded-full bg-white/10 blur-3xl" />
-        <div className="animate-drift-3 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-black/10 blur-3xl" />
-        <div className="animate-drift-2 absolute top-[15%] right-[10%] w-32 h-32 rounded-full bg-white/5 blur-2xl" />
-        <div className="animate-drift-1 absolute bottom-[20%] left-[15%] w-40 h-40 rounded-full bg-white/5 blur-2xl" />
+        <div className={`animate-drift-1 absolute -top-24 -left-24 w-96 h-96 rounded-full blur-3xl transition-colors duration-1000 ${
+          isDark ? "bg-indigo-600/15" : "bg-white/10"
+        }`} />
+        <div className={`animate-drift-2 absolute -bottom-24 -right-24 w-80 h-80 rounded-full blur-3xl transition-colors duration-1000 ${
+          isDark ? "bg-purple-600/15" : "bg-white/10"
+        }`} />
+        <div className={`animate-drift-3 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full blur-3xl transition-colors duration-1000 ${
+          isDark ? "bg-cyan-500/10" : "bg-black/10"
+        }`} />
+        <div className={`animate-drift-2 absolute top-[15%] right-[10%] w-32 h-32 rounded-full blur-2xl transition-colors duration-1000 ${
+          isDark ? "bg-blue-400/10" : "bg-white/5"
+        }`} />
+        <div className={`animate-drift-1 absolute bottom-[20%] left-[15%] w-40 h-40 rounded-full blur-2xl transition-colors duration-1000 ${
+          isDark ? "bg-violet-400/10" : "bg-white/5"
+        }`} />
       </div>
 
       {/* ── Main Glass Card Container ── */}
       <div className="relative w-full max-w-lg md:max-w-xl transition-all duration-500 my-auto">
-        <div className="glass-card backdrop-blur-2xl bg-white/15 border border-white/25 rounded-3xl shadow-2xl overflow-hidden">
+        <div className={`glass-card backdrop-blur-2xl rounded-3xl overflow-hidden transition-all duration-500 ${
+          isDark
+            ? "bg-slate-950/70 border border-white/10 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)]"
+            : "bg-white/15 border border-white/25 shadow-2xl"
+        }`}>
           {/* Top gloss shimmer line */}
           <div className="absolute inset-x-0 top-0 h-px overflow-hidden">
-            <div className="animate-shimmer h-full w-full bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+            <div className={`animate-shimmer h-full w-full bg-gradient-to-r from-transparent ${
+              isDark ? "via-cyan-400/40" : "via-white/60"
+            } to-transparent`} />
           </div>
 
           <div className="p-4 sm:p-6 max-h-[92vh] overflow-y-auto custom-scrollbar">
-            {/* ── Header: Search & Unit Toggle ── */}
+            {/* ── Header: Search, Unit Toggle & Theme Toggle ── */}
             <div className="flex items-center gap-2">
-              <div className="search-bar flex-1 flex items-center gap-2 bg-white/15 border border-white/20 rounded-2xl px-3.5 py-2.5">
-                <IconLocation className="transition-transform duration-300" />
+              <div className={`search-bar flex-1 flex items-center gap-2 rounded-2xl px-3.5 py-2.5 transition-all ${
+                isDark
+                  ? "bg-white/5 border border-white/10 focus-within:bg-white/10 focus-within:border-cyan-400/40 focus-within:shadow-[0_0_20px_rgba(34,211,238,0.15)]"
+                  : "bg-white/15 border border-white/20 focus-within:bg-white/20 focus-within:border-white/40 focus-within:shadow-[0_0_20px_rgba(255,255,255,0.15)]"
+              }`}>
+                <IconLocation className={`transition-transform duration-300 ${isDark ? "fill-cyan-300/80" : "fill-white/80"}`} />
                 <input
                   ref={inputRef}
                   type="text"
@@ -724,25 +889,35 @@ export default function WeatherPage() {
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className="flex-1 min-w-0 bg-transparent text-white placeholder:text-white/50 text-sm font-medium outline-none"
+                  className={`flex-1 min-w-0 bg-transparent text-sm font-medium outline-none ${
+                    isDark ? "text-white placeholder:text-slate-400" : "text-white placeholder:text-white/50"
+                  }`}
                 />
                 <button
                   onClick={() => handleSearch()}
                   disabled={appState === "loading"}
                   aria-label="Search weather"
-                  className="search-btn w-8 h-8 rounded-xl bg-white/20 hover:bg-white/35 text-white flex items-center justify-center disabled:opacity-50 shrink-0 cursor-pointer"
+                  className={`search-btn w-8 h-8 rounded-xl flex items-center justify-center disabled:opacity-50 shrink-0 cursor-pointer transition-colors ${
+                    isDark ? "bg-white/10 hover:bg-white/20 text-white" : "bg-white/20 hover:bg-white/35 text-white"
+                  }`}
                 >
                   {appState === "loading" ? <IconSpinner /> : <IconSearch />}
                 </button>
               </div>
 
               {/* °C / °F Unit Switcher */}
-              <div className="flex bg-white/15 border border-white/20 rounded-2xl p-1 shrink-0">
+              <div className={`flex rounded-2xl p-1 shrink-0 border transition-colors ${
+                isDark ? "bg-white/5 border-white/10" : "bg-white/15 border-white/20"
+              }`}>
                 <button
                   onClick={() => setUnit("C")}
                   className={`px-2.5 py-1 text-xs font-bold rounded-xl transition-all cursor-pointer ${
                     unit === "C"
-                      ? "bg-white text-slate-800 shadow-md"
+                      ? isDark
+                        ? "bg-cyan-500 text-slate-950 shadow-md font-extrabold"
+                        : "bg-white text-slate-800 shadow-md"
+                      : isDark
+                      ? "text-slate-400 hover:text-white"
                       : "text-white/70 hover:text-white"
                   }`}
                 >
@@ -752,23 +927,45 @@ export default function WeatherPage() {
                   onClick={() => setUnit("F")}
                   className={`px-2.5 py-1 text-xs font-bold rounded-xl transition-all cursor-pointer ${
                     unit === "F"
-                      ? "bg-white text-slate-800 shadow-md"
+                      ? isDark
+                        ? "bg-cyan-500 text-slate-950 shadow-md font-extrabold"
+                        : "bg-white text-slate-800 shadow-md"
+                      : isDark
+                      ? "text-slate-400 hover:text-white"
                       : "text-white/70 hover:text-white"
                   }`}
                 >
                   °F
                 </button>
               </div>
+
+              {/* Dark / Light Theme Toggle */}
+              <button
+                onClick={toggleTheme}
+                title={isDark ? "Switch to Light theme" : "Switch to Dark theme"}
+                aria-label={isDark ? "Switch to Light theme" : "Switch to Dark theme"}
+                className={`p-2 rounded-2xl border flex items-center justify-center shrink-0 cursor-pointer transition-all active:scale-90 ${
+                  isDark
+                    ? "bg-white/5 border-white/10 text-amber-300 hover:bg-white/15 hover:border-amber-300/40 hover:shadow-[0_0_15px_rgba(252,211,77,0.2)]"
+                    : "bg-white/15 border-white/20 text-indigo-100 hover:bg-white/25 hover:border-white/40 shadow-sm"
+                }`}
+              >
+                {isDark ? <IconSun /> : <IconMoon />}
+              </button>
             </div>
 
             {/* ── Quick City Chips ── */}
             <div className="mt-2.5 flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-1">
-              <span className="text-[11px] font-medium text-white/50 shrink-0">Popular:</span>
+              <span className={`text-[11px] font-medium shrink-0 ${isDark ? "text-slate-400" : "text-white/50"}`}>Popular:</span>
               {POPULAR_CITIES.map((c) => (
                 <button
                   key={c}
                   onClick={() => handleSearch(c)}
-                  className="text-xs px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-white/80 hover:text-white shrink-0 transition-all cursor-pointer active:scale-95"
+                  className={`text-xs px-2.5 py-1 rounded-xl border shrink-0 transition-all cursor-pointer active:scale-95 ${
+                    isDark
+                      ? "bg-white/5 hover:bg-white/10 border-white/10 text-slate-300 hover:text-white"
+                      : "bg-white/10 hover:bg-white/20 border-white/15 text-white/80 hover:text-white"
+                  }`}
                 >
                   {c}
                 </button>
@@ -778,11 +975,15 @@ export default function WeatherPage() {
             {/* ── Idle State Hint ── */}
             {appState === "idle" && (
               <div className="py-12 text-center animate-fade-in">
-                <div className="w-16 h-16 mx-auto mb-3 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center">
-                  <IconLocation className="w-8 h-8 fill-white/60" />
+                <div className={`w-16 h-16 mx-auto mb-3 rounded-2xl flex items-center justify-center border ${
+                  isDark ? "bg-white/5 border-white/10" : "bg-white/10 border-white/20"
+                }`}>
+                  <IconLocation className={`w-8 h-8 ${isDark ? "fill-cyan-300/70" : "fill-white/60"}`} />
                 </div>
                 <p className="text-white font-semibold text-lg">Real-Time Global Weather</p>
-                <p className="animate-pulse-soft text-white/60 text-xs sm:text-sm mt-1 max-w-xs mx-auto">
+                <p className={`animate-pulse-soft text-xs sm:text-sm mt-1 max-w-xs mx-auto ${
+                  isDark ? "text-slate-400" : "text-white/60"
+                }`}>
                   Type any city or click a popular destination to view comprehensive live conditions & forecasts.
                 </p>
               </div>
@@ -804,7 +1005,7 @@ export default function WeatherPage() {
                   />
                 </div>
                 <p className="text-white font-semibold text-lg mt-3">City Not Found</p>
-                <p className="text-white/60 text-sm mt-1">
+                <p className={`${isDark ? "text-slate-400" : "text-white/60"} text-sm mt-1`}>
                   We couldn&apos;t find &quot;{city}&quot;. Please verify spelling or try another city.
                 </p>
               </div>
@@ -816,12 +1017,12 @@ export default function WeatherPage() {
                 {/* ── City, Country & Local Time Header ── */}
                 <div className="flex items-center justify-between text-white/80 text-xs font-semibold tracking-wide border-b border-white/10 pb-2.5">
                   <div className="flex items-center gap-1.5 uppercase">
-                    <IconLocation />
+                    <IconLocation className={isDark ? "fill-cyan-300/80" : "fill-white/80"} />
                     <span>
                       {weather.cityName}, {weather.country}
                     </span>
                   </div>
-                  <div className="text-white/60 font-medium">
+                  <div className={`${isDark ? "text-slate-400" : "text-white/60"} font-medium`}>
                     Local Time: {formatCityLocalTime(weather.timezone)}
                   </div>
                 </div>
@@ -851,12 +1052,14 @@ export default function WeatherPage() {
                     </div>
 
                     <div className="flex items-center justify-center sm:justify-end gap-2 mt-2">
-                      <span className="inline-block px-2.5 py-0.5 rounded-full bg-white/20 border border-white/25 text-white text-xs font-medium capitalize">
+                      <span className={`inline-block px-2.5 py-0.5 rounded-full border text-white text-xs font-medium capitalize ${
+                        isDark ? "bg-white/10 border-white/15" : "bg-white/20 border-white/25"
+                      }`}>
                         {weather.description}
                       </span>
                     </div>
 
-                    <div className="text-white/60 text-xs font-medium mt-1.5 flex items-center justify-center sm:justify-end gap-2">
+                    <div className={`${isDark ? "text-slate-400" : "text-white/60"} text-xs font-medium mt-1.5 flex items-center justify-center sm:justify-end gap-2`}>
                       <span className="flex items-center gap-0.5 text-white/75">
                         <IconThermometer /> Feels like {toUnit(weather.feelsLike, unit)}°{unit}
                       </span>
@@ -868,7 +1071,9 @@ export default function WeatherPage() {
                 </div>
 
                 {/* ── Navigation Tabs ── */}
-                <div className="mt-5 grid grid-cols-5 gap-1 bg-white/10 p-1 rounded-2xl border border-white/15">
+                <div className={`mt-5 grid grid-cols-5 gap-1 p-1 rounded-2xl border transition-colors ${
+                  isDark ? "bg-black/30 border-white/10" : "bg-white/10 border-white/15"
+                }`}>
                   {(
                     [
                       { id: "overview", label: "Overview" },
@@ -883,7 +1088,11 @@ export default function WeatherPage() {
                       onClick={() => setActiveTab(tab.id)}
                       className={`tab-btn py-1.5 text-xs font-semibold rounded-xl text-center cursor-pointer ${
                         activeTab === tab.id
-                          ? "bg-white text-slate-800 shadow-md font-bold"
+                          ? isDark
+                            ? "bg-white text-slate-950 shadow-md font-bold"
+                            : "bg-white text-slate-800 shadow-md font-bold"
+                          : isDark
+                          ? "text-slate-400 hover:text-white hover:bg-white/5"
                           : "text-white/70 hover:text-white hover:bg-white/10"
                       }`}
                     >
@@ -900,6 +1109,7 @@ export default function WeatherPage() {
                       value={`${weather.humidity}%`}
                       label="Humidity"
                       subtext={getHumidityCategory(weather.humidity)}
+                      isDark={isDark}
                     />
                     <StatCard
                       icon={<IconWind />}
@@ -912,12 +1122,14 @@ export default function WeatherPage() {
                       subtext={`${getWindDirection(weather.windDeg)} (${weather.windDeg ?? 0}°)${
                         weather.windGust ? ` • Gust ${toUnit(weather.windGust, unit)}` : ""
                       }`}
+                      isDark={isDark}
                     />
                     <StatCard
                       icon={<IconGauge />}
                       value={`${weather.pressure} hPa`}
                       label="Pressure"
                       subtext={weather.pressure >= 1013 ? "High / Stable" : "Low / Dynamic"}
+                      isDark={isDark}
                     />
                     <StatCard
                       icon={<IconEye />}
@@ -928,41 +1140,53 @@ export default function WeatherPage() {
                       }
                       label="Visibility"
                       subtext={getVisibilityCategory(weather.visibility)}
+                      isDark={isDark}
                     />
                     <StatCard
                       icon={<IconCloudCover />}
                       value={`${weather.clouds}%`}
                       label="Cloudiness"
                       subtext={getCloudCategory(weather.clouds)}
+                      isDark={isDark}
                     />
                     <StatCard
                       icon={<IconThermometer />}
                       value={`${toUnit(weather.tempMin, unit)}° / ${toUnit(weather.tempMax, unit)}°`}
                       label="Min / Max"
                       subtext={`Spread ${Math.abs(toUnit(weather.tempMax, unit) - toUnit(weather.tempMin, unit))}°`}
+                      isDark={isDark}
                     />
 
                     {/* AQI Quick-Banner in Overview */}
                     {airQuality && (
                       <button
                         onClick={() => setActiveTab("aqi")}
-                        className={`col-span-2 sm:col-span-3 p-3 rounded-2xl border backdrop-blur-sm flex items-center justify-between text-left transition-all hover:bg-white/15 cursor-pointer ${getAqiInfo(airQuality.aqi).badgeBg} ${getAqiInfo(airQuality.aqi).badgeBorder}`}
+                        className={`col-span-2 sm:col-span-3 p-3 rounded-2xl border backdrop-blur-sm flex items-center justify-between text-left transition-all cursor-pointer ${
+                          isDark ? "hover:bg-slate-800/50" : "hover:bg-white/15"
+                        } ${getAqiInfo(airQuality.aqi).badgeBg} ${getAqiInfo(airQuality.aqi).badgeBorder}`}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                            isDark ? "bg-white/10" : "bg-white/20"
+                          }`}>
                             <IconLeaf className="w-5 h-5" />
                           </div>
                           <div className="min-w-0">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-white font-bold text-xs uppercase tracking-wider">Air Quality</span>
                               <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${getAqiInfo(airQuality.aqi).badgeBg} ${getAqiInfo(airQuality.aqi).textColor} ${getAqiInfo(airQuality.aqi).badgeBorder}`}>
                                 Level {airQuality.aqi} • {getAqiInfo(airQuality.aqi).label}
                               </span>
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${
+                                isDark ? "bg-white/5 text-slate-300 border-white/10" : "bg-white/10 text-white/80 border-white/15"
+                              }`}>
+                                Vis: {unit === "C" ? `${weather.visibility} km` : `${(weather.visibility * 0.621).toFixed(1)} mi`}
+                              </span>
                             </div>
-                            <p className="text-white/70 text-[11px] truncate mt-0.5">{getAqiInfo(airQuality.aqi).summary}</p>
+                            <p className={`${isDark ? "text-slate-300" : "text-white/70"} text-[11px] truncate mt-0.5`}>{getAqiInfo(airQuality.aqi).summary}</p>
                           </div>
                         </div>
-                        <span className="text-white/80 hover:text-white text-xs font-semibold shrink-0 ml-2">Health Advice →</span>
+                        <span className={`${isDark ? "text-cyan-300 hover:text-cyan-200" : "text-white/80 hover:text-white"} text-xs font-semibold shrink-0 ml-2`}>Health Advice →</span>
                       </button>
                     )}
                   </div>
@@ -978,17 +1202,21 @@ export default function WeatherPage() {
                         return (
                           <div className="space-y-3">
                             {/* AQI Header Card */}
-                            <div className="p-4 rounded-2xl bg-white/10 border border-white/20 backdrop-blur-sm">
+                            <div className={`p-4 rounded-2xl border backdrop-blur-sm ${
+                              isDark ? "bg-slate-900/40 border-white/10" : "bg-white/10 border-white/20"
+                            }`}>
                               <div className="flex items-center justify-between mb-3">
                                 <div className="flex items-center gap-2.5">
-                                  <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+                                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                                    isDark ? "bg-white/5 border border-white/10" : "bg-white/15"
+                                  }`}>
                                     <IconLeaf />
                                   </div>
                                   <div>
                                     <p className="text-white font-bold text-base leading-tight">
                                       Air Quality Index
                                     </p>
-                                    <p className="text-white/50 text-[11px] font-medium mt-0.5">
+                                    <p className={`${isDark ? "text-slate-400" : "text-white/50"} text-[11px] font-medium mt-0.5`}>
                                       OpenWeather Air Pollution API
                                     </p>
                                   </div>
@@ -1001,7 +1229,9 @@ export default function WeatherPage() {
                               </div>
 
                               {/* AQI Progress Bar */}
-                              <div className="relative h-3 rounded-full bg-white/10 overflow-hidden">
+                              <div className={`relative h-3 rounded-full overflow-hidden ${
+                                isDark ? "bg-white/5" : "bg-white/10"
+                              }`}>
                                 <div
                                   className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-emerald-400 via-amber-400 to-rose-500 transition-all duration-700"
                                   style={{ width: `${aqiPercent}%` }}
@@ -1017,7 +1247,9 @@ export default function WeatherPage() {
                                   ))}
                                 </div>
                               </div>
-                              <div className="flex justify-between text-[10px] text-white/40 mt-1 px-0.5">
+                              <div className={`flex justify-between text-[10px] mt-1 px-0.5 ${
+                                isDark ? "text-slate-400" : "text-white/40"
+                              }`}>
                                 <span>Good</span>
                                 <span>Fair</span>
                                 <span>Moderate</span>
@@ -1026,13 +1258,78 @@ export default function WeatherPage() {
                               </div>
 
                               {/* Summary */}
-                              <p className="text-white/70 text-xs leading-relaxed mt-3">
+                              <p className={`${isDark ? "text-slate-300" : "text-white/70"} text-xs leading-relaxed mt-3`}>
                                 {info.summary}
                               </p>
                             </div>
 
+                            {/* Atmospheric Visibility Parameter */}
+                            <div
+                              className={`p-3.5 rounded-2xl border backdrop-blur-sm flex items-center justify-between transition-all ${
+                                isDark
+                                  ? "bg-slate-900/40 border-white/10"
+                                  : "bg-white/10 border-white/20"
+                              }`}
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div
+                                  className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                                    isDark ? "bg-white/5 border border-white/10" : "bg-white/15"
+                                  }`}
+                                >
+                                  <IconEye className="w-5 h-5 fill-none stroke-emerald-300 stroke-2" />
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-white font-bold text-xs uppercase tracking-wider">
+                                      Atmospheric Visibility
+                                    </span>
+                                    <span
+                                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                                        weather.visibility >= 10
+                                          ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                                          : weather.visibility >= 6
+                                          ? "bg-lime-500/20 text-lime-300 border-lime-500/40"
+                                          : weather.visibility >= 2
+                                          ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                                          : "bg-rose-500/20 text-rose-300 border-rose-500/40"
+                                      }`}
+                                    >
+                                      {getVisibilityCategory(weather.visibility)}
+                                    </span>
+                                  </div>
+                                  <p className={`${isDark ? "text-slate-400" : "text-white/60"} text-[11px] truncate mt-0.5`}>
+                                    {weather.visibility < 3
+                                      ? "Dense particulate haze significantly reducing sightline"
+                                      : weather.visibility < 7
+                                      ? "Moderate particulate scatter affecting distant horizon"
+                                      : "Clear visual range with minimal particulate interference"}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0 ml-3">
+                                <p className="text-white font-bold text-base leading-none">
+                                  {unit === "C"
+                                    ? `${weather.visibility} km`
+                                    : `${(weather.visibility * 0.621).toFixed(1)} mi`}
+                                </p>
+                                <p className={`${isDark ? "text-slate-500" : "text-white/40"} text-[10px] mt-0.5`}>
+                                  Visual Range
+                                </p>
+                              </div>
+                            </div>
+
                             {/* Pollutant Breakdown Grid */}
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="space-y-1.5">
+                              <div className="flex items-center justify-between text-[11px] px-0.5">
+                                <span className={`${isDark ? "text-slate-400" : "text-white/60"} font-semibold uppercase tracking-wider`}>
+                                  Pollutant Concentrations
+                                </span>
+                                <span className={`${isDark ? "text-slate-500" : "text-white/40"} text-[10px]`}>
+                                  Particulate & Gas Sensors
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-3 gap-2">
                               {[
                                 { label: "PM₂.₅", value: airQuality.pm2_5, unit: "µg/m³", warn: 25 },
                                 { label: "PM₁₀", value: airQuality.pm10, unit: "µg/m³", warn: 50 },
@@ -1043,26 +1340,31 @@ export default function WeatherPage() {
                               ].map((p) => (
                                 <div
                                   key={p.label}
-                                  className="p-2.5 rounded-xl bg-white/10 border border-white/15 text-center hover:bg-white/15 transition-all"
+                                  className={`p-2.5 rounded-xl border text-center transition-all ${
+                                    isDark
+                                      ? "bg-slate-900/40 border-white/10 hover:bg-slate-800/60"
+                                      : "bg-white/10 border-white/15 hover:bg-white/15"
+                                  }`}
                                 >
-                                  <p className="text-white/50 text-[10px] font-semibold uppercase tracking-wider">
+                                  <p className={`${isDark ? "text-slate-400" : "text-white/50"} text-[10px] font-semibold uppercase tracking-wider`}>
                                     {p.label}
                                   </p>
                                   <p
                                     className={`text-base font-bold mt-0.5 ${
-                                      p.value > p.warn ? "text-rose-300" : "text-white"
+                                      p.value > p.warn ? "text-rose-400" : "text-white"
                                     }`}
                                   >
                                     {p.value}
                                   </p>
-                                  <p className="text-white/35 text-[9px] mt-0.5">{p.unit}</p>
+                                  <p className={`${isDark ? "text-slate-500" : "text-white/35"} text-[9px] mt-0.5`}>{p.unit}</p>
                                 </div>
                               ))}
+                            </div>
                             </div>
 
                             {/* Health Advice Cards */}
                             <div className="space-y-2">
-                              <p className="text-white/60 text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5">
+                              <p className={`${isDark ? "text-slate-400" : "text-white/60"} text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5`}>
                                 <IconShieldAlert />
                                 Health Advice
                               </p>
@@ -1091,7 +1393,11 @@ export default function WeatherPage() {
                                 ].map((card) => (
                                   <div
                                     key={card.title}
-                                    className="p-3 rounded-xl bg-white/8 border border-white/15 hover:bg-white/12 transition-all"
+                                    className={`p-3 rounded-xl border transition-all ${
+                                      isDark
+                                        ? "bg-slate-900/30 border-white/10 hover:bg-slate-800/50"
+                                        : "bg-white/8 border-white/15 hover:bg-white/12"
+                                    }`}
                                   >
                                     <div className="flex items-center gap-2 mb-1.5">
                                       {card.icon}
@@ -1099,7 +1405,7 @@ export default function WeatherPage() {
                                         {card.title}
                                       </span>
                                     </div>
-                                    <p className="text-white/55 text-[11px] leading-relaxed">
+                                    <p className={`${isDark ? "text-slate-400" : "text-white/55"} text-[11px] leading-relaxed`}>
                                       {card.advice}
                                     </p>
                                   </div>
@@ -1110,7 +1416,7 @@ export default function WeatherPage() {
                         );
                       })()
                     ) : (
-                      <div className="py-6 text-center text-white/60 text-xs">
+                      <div className={`py-6 text-center text-xs ${isDark ? "text-slate-400" : "text-white/60"}`}>
                         Air quality data not available for this location.
                       </div>
                     )}
@@ -1122,17 +1428,21 @@ export default function WeatherPage() {
                   <div className="mt-4 animate-fade-in">
                     {hourlyForecast.length > 0 ? (
                       <div>
-                        <p className="text-white/70 text-xs font-semibold mb-2 flex items-center justify-between">
+                        <p className={`${isDark ? "text-slate-300" : "text-white/70"} text-xs font-semibold mb-2 flex items-center justify-between`}>
                           <span>Next 24-Hour Timeline</span>
-                          <span className="text-[11px] text-white/50">Scroll for more →</span>
+                          <span className={`text-[11px] ${isDark ? "text-slate-400" : "text-white/50"}`}>Scroll for more →</span>
                         </p>
                         <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
                           {hourlyForecast.map((hour, idx) => (
                             <div
                               key={idx}
-                              className="flex flex-col items-center justify-between min-w-[76px] p-2.5 rounded-2xl bg-white/10 border border-white/20 backdrop-blur-sm shrink-0 hover:bg-white/20 transition-all text-center"
+                              className={`flex flex-col items-center justify-between min-w-[76px] p-2.5 rounded-2xl border backdrop-blur-sm shrink-0 transition-all text-center ${
+                                isDark
+                                  ? "bg-slate-900/40 border-white/10 hover:bg-slate-800/60"
+                                  : "bg-white/10 border-white/20 hover:bg-white/20"
+                              }`}
                             >
-                              <span className="text-white/75 text-[11px] font-semibold">
+                              <span className={`${isDark ? "text-slate-300" : "text-white/75"} text-[11px] font-semibold`}>
                                 {hour.time}
                               </span>
                               <div className="my-1.5 drop-shadow">
@@ -1156,7 +1466,7 @@ export default function WeatherPage() {
                         </div>
                       </div>
                     ) : (
-                      <div className="py-6 text-center text-white/60 text-xs">
+                      <div className={`py-6 text-center text-xs ${isDark ? "text-slate-400" : "text-white/60"}`}>
                         Hourly forecast not available for this location.
                       </div>
                     )}
@@ -1170,11 +1480,15 @@ export default function WeatherPage() {
                       dailyForecast.map((day, idx) => (
                         <div
                           key={idx}
-                          className="flex items-center justify-between p-3 rounded-2xl bg-white/10 border border-white/20 hover:bg-white/15 transition-all backdrop-blur-sm"
+                          className={`flex items-center justify-between p-3 rounded-2xl border transition-all backdrop-blur-sm ${
+                            isDark
+                              ? "bg-slate-900/40 border-white/10 hover:bg-slate-800/50"
+                              : "bg-white/10 border-white/20 hover:bg-white/15"
+                          }`}
                         >
                           <div className="w-24">
                             <p className="text-white font-bold text-sm leading-none">{day.day}</p>
-                            <p className="text-white/50 text-[11px] mt-0.5">{day.date}</p>
+                            <p className={`${isDark ? "text-slate-400" : "text-white/50"} text-[11px] mt-0.5`}>{day.date}</p>
                           </div>
 
                           <div className="flex items-center gap-2 flex-1 justify-center">
@@ -1190,7 +1504,7 @@ export default function WeatherPage() {
                           </div>
 
                           <div className="flex items-center gap-2 text-right">
-                            <span className="text-white/60 text-xs font-semibold">
+                            <span className={`${isDark ? "text-slate-400" : "text-white/60"} text-xs font-semibold`}>
                               {toUnit(day.tempMin, unit)}°
                             </span>
                             <div className="w-16 h-1.5 rounded-full bg-white/15 overflow-hidden hidden sm:block">
@@ -1203,7 +1517,7 @@ export default function WeatherPage() {
                         </div>
                       ))
                     ) : (
-                      <div className="py-6 text-center text-white/60 text-xs">
+                      <div className={`py-6 text-center text-xs ${isDark ? "text-slate-400" : "text-white/60"}`}>
                         5-Day forecast not available for this location.
                       </div>
                     )}
@@ -1213,7 +1527,9 @@ export default function WeatherPage() {
                 {/* ── TAB 4: Sun, Coordinates & Details ── */}
                 {activeTab === "sun" && (
                   <div className="mt-4 grid grid-cols-2 gap-3 animate-fade-in">
-                    <div className="p-3.5 rounded-2xl bg-white/10 border border-white/20 backdrop-blur-sm flex items-center gap-3">
+                    <div className={`p-3.5 rounded-2xl border backdrop-blur-sm flex items-center gap-3 ${
+                      isDark ? "bg-slate-900/40 border-white/10" : "bg-white/10 border-white/20"
+                    }`}>
                       <div className="w-10 h-10 rounded-xl bg-amber-400/20 flex items-center justify-center shrink-0">
                         <IconSunrise />
                       </div>
@@ -1221,14 +1537,16 @@ export default function WeatherPage() {
                         <p className="text-white font-bold text-base leading-tight">
                           {formatSunTime(weather.sunrise, weather.timezone)}
                         </p>
-                        <p className="text-white/60 text-xs font-medium uppercase mt-0.5">
+                        <p className={`${isDark ? "text-slate-400" : "text-white/60"} text-xs font-medium uppercase mt-0.5`}>
                           Sunrise
                         </p>
-                        <p className="text-white/40 text-[11px]">Local Solar Time</p>
+                        <p className={`${isDark ? "text-slate-500" : "text-white/40"} text-[11px]`}>Local Solar Time</p>
                       </div>
                     </div>
 
-                    <div className="p-3.5 rounded-2xl bg-white/10 border border-white/20 backdrop-blur-sm flex items-center gap-3">
+                    <div className={`p-3.5 rounded-2xl border backdrop-blur-sm flex items-center gap-3 ${
+                      isDark ? "bg-slate-900/40 border-white/10" : "bg-white/10 border-white/20"
+                    }`}>
                       <div className="w-10 h-10 rounded-xl bg-rose-400/20 flex items-center justify-center shrink-0">
                         <IconSunset />
                       </div>
@@ -1236,14 +1554,16 @@ export default function WeatherPage() {
                         <p className="text-white font-bold text-base leading-tight">
                           {formatSunTime(weather.sunset, weather.timezone)}
                         </p>
-                        <p className="text-white/60 text-xs font-medium uppercase mt-0.5">
+                        <p className={`${isDark ? "text-slate-400" : "text-white/60"} text-xs font-medium uppercase mt-0.5`}>
                           Sunset
                         </p>
-                        <p className="text-white/40 text-[11px]">Dusk Horizon</p>
+                        <p className={`${isDark ? "text-slate-500" : "text-white/40"} text-[11px]`}>Dusk Horizon</p>
                       </div>
                     </div>
 
-                    <div className="p-3.5 rounded-2xl bg-white/10 border border-white/20 backdrop-blur-sm flex items-center gap-3">
+                    <div className={`p-3.5 rounded-2xl border backdrop-blur-sm flex items-center gap-3 ${
+                      isDark ? "bg-slate-900/40 border-white/10" : "bg-white/10 border-white/20"
+                    }`}>
                       <div className="w-10 h-10 rounded-xl bg-teal-400/20 flex items-center justify-center shrink-0">
                         <IconCompass />
                       </div>
@@ -1251,14 +1571,16 @@ export default function WeatherPage() {
                         <p className="text-white font-bold text-sm leading-tight">
                           {weather.coord ? `${weather.coord.lat.toFixed(2)}°, ${weather.coord.lon.toFixed(2)}°` : "N/A"}
                         </p>
-                        <p className="text-white/60 text-xs font-medium uppercase mt-0.5">
+                        <p className={`${isDark ? "text-slate-400" : "text-white/60"} text-xs font-medium uppercase mt-0.5`}>
                           Coordinates
                         </p>
-                        <p className="text-white/40 text-[11px]">Latitude / Longitude</p>
+                        <p className={`${isDark ? "text-slate-500" : "text-white/40"} text-[11px]`}>Latitude / Longitude</p>
                       </div>
                     </div>
 
-                    <div className="p-3.5 rounded-2xl bg-white/10 border border-white/20 backdrop-blur-sm flex items-center gap-3">
+                    <div className={`p-3.5 rounded-2xl border backdrop-blur-sm flex items-center gap-3 ${
+                      isDark ? "bg-slate-900/40 border-white/10" : "bg-white/10 border-white/20"
+                    }`}>
                       <div className="w-10 h-10 rounded-xl bg-purple-400/20 flex items-center justify-center shrink-0">
                         <IconGauge />
                       </div>
@@ -1267,10 +1589,10 @@ export default function WeatherPage() {
                           UTC {weather.timezone >= 0 ? "+" : ""}
                           {(weather.timezone / 3600).toFixed(1)}h
                         </p>
-                        <p className="text-white/60 text-xs font-medium uppercase mt-0.5">
+                        <p className={`${isDark ? "text-slate-400" : "text-white/60"} text-xs font-medium uppercase mt-0.5`}>
                           Time Zone
                         </p>
-                        <p className="text-white/40 text-[11px]">Offset from UTC</p>
+                        <p className={`${isDark ? "text-slate-500" : "text-white/40"} text-[11px]`}>Offset from UTC</p>
                       </div>
                     </div>
                   </div>

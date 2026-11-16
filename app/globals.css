@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 /* ═══════════════════════════════════════════
    KEYFRAMES
@@ -231,6 +232,7 @@
 .stat-card {
   transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
               background 0.3s ease,
+              border-color 0.3s ease,
               box-shadow 0.3s ease;
 }
 .stat-card:hover {
@@ -262,7 +264,8 @@
 
 /* Custom horizontal scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
-  height: 4px;
+  height: 5px;
+  width: 5px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.05);
